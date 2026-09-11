@@ -5,7 +5,7 @@ public class GameManager : MonoBehaviour
     public int totalKoin;
     private int koinTerkumpul = 0;
     private int jumlahZombieMati = 0;
-    private bool isMenang = false; // Tambahkan variabel ini
+    private bool isMenang = false;
 
     void OnEnable()
     {
@@ -39,13 +39,14 @@ public class GameManager : MonoBehaviour
 
     void Menang()
     {
-        isMenang = true; // Tandai bahwa pemain sudah menang
+        isMenang = true;
         Debug.Log("KAMU MENANG!");
     }
 
     void OnGUI()
     {
         GUI.skin.label.fontSize = 22;
+        GUI.skin.label.alignment = TextAnchor.UpperLeft; // Merapikan posisi default teks atas
         GUI.Label(new Rect(16, 16, 480, 36), "Koin: " + koinTerkumpul + " / " + totalKoin);
         GUI.Label(new Rect(16, 52, 480, 36), "Zombie mati: " + jumlahZombieMati);
 
@@ -53,7 +54,10 @@ public class GameManager : MonoBehaviour
         if (isMenang)
         {
             GUI.skin.label.fontSize = 40;
-            GUI.Label(new Rect(Screen.width / 2 - 150, Screen.height / 2 - 30, 300, 60), "KAMU MENANG!");
+            GUI.skin.label.alignment = TextAnchor.MiddleCenter; // Merapikan teks di tengah kotak
+
+            // Lebar kotak diperbesar dari 300 ke 600 piksel biar muat
+            GUI.Label(new Rect(Screen.width / 2 - 300, Screen.height / 2 - 30, 600, 60), "KAMU MENANG!");
         }
     }
 }
