@@ -11,7 +11,6 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private Rigidbody2D rb;
     private Vector2 moveInput;
 
-    // --- INTEGRASI EVENT RECEIVER (POIN 5 TUGAS) ---
     private void OnEnable()
     {
         PengirimEvent.OnTekanSpasi += TerimaNotifikasiSpasi;
