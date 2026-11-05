@@ -1,13 +1,14 @@
 using UnityEngine;
 using System;
+using PASGame; // Ditambahkan agar Enemy bisa membaca sistem Player dari namespace PASGame
 
 public class Enemy : MonoBehaviour, IDamageable
 {
     [SerializeField] private int hp = 100;
     public float ms = 2f;
 
-    // Damage yang diterima enemy setiap kali menabrak Player.
-    [SerializeField] private int damageSaatTabrakan = 20;
+    // Damage yang diterima Player setiap kali ditabrak. Diset 1 karena Max HP Player adalah 5.
+    [SerializeField] private int damageSaatTabrakan = 1;
 
     // Fitur Patroli
     [SerializeField] private float radiusPatrol = 3f;
@@ -24,7 +25,6 @@ public class Enemy : MonoBehaviour, IDamageable
     // State Now
     private StateZombie state = StateZombie.IDLE;
     private float waktuSerangTerakhir;
-
 
     public static event Action<Enemy> OnZombieMati;
 
@@ -91,12 +91,12 @@ public class Enemy : MonoBehaviour, IDamageable
 
     public virtual void Serang()
     {
-        Debug.Log("Enemy menyerang!");
+        // Debug.Log("Enemy menyerang!");
     }
 
     void PerilakuIdle()
     {
-        Debug.Log("Enemy sedang IDLE");
+        // Log dimatikan agar Console tidak lag
     }
 
     void PerilakuPatrol()
@@ -107,8 +107,6 @@ public class Enemy : MonoBehaviour, IDamageable
 
         if (Vector2.Distance(transform.position, tujuanPatrol) < 0.1f)
             PilihTujuanPatrolBaru();
-
-        Debug.Log("Enemy sedang PATROL");
     }
 
     void PilihTujuanPatrolBaru()
@@ -120,7 +118,6 @@ public class Enemy : MonoBehaviour, IDamageable
     void PerilakuChase()
     {
         Kejar();
-        Debug.Log("Enemy sedang CHASE");
     }
 
     void PerilakuAttack()
@@ -130,7 +127,6 @@ public class Enemy : MonoBehaviour, IDamageable
             Serang();
             waktuSerangTerakhir = Time.time;
         }
-        Debug.Log("Enemy sedang ATTACK");
     }
 
     public void KenaDamage(int damage)
@@ -147,18 +143,31 @@ public class Enemy : MonoBehaviour, IDamageable
     protected virtual void Mati()
     {
         Debug.Log("Enemy mati!");
+        
+        // Memanggil event OnZombieMati agar GameManager tahu zombie ini mati
+        OnZombieMati?.Invoke(this); 
+        
         Destroy(gameObject);
     }
 
-    // Dipanggil otomatis oleh Unity saat collider enemy menabrak collider lain.
-    void OnTriggerEnter2D(Collider2D other)
+    // Dipanggil otomatis oleh Unity saat dua benda padat (Collider 2D) saling bertabrakan
+    void OnCollisionEnter2D(Collision2D collision)
     {
-        if (other.CompareTag("Player"))
+        // Mengecek apakah objek yang ditabrak memiliki Tag "Player"
+        if (collision.gameObject.CompareTag("Player"))
         {
-            IDamageable playerScript = other.GetComponent<IDamageable>();
+            // Mencari komponen IDamageable di objek Player tersebut
+            IDamageable playerScript = collision.gameObject.GetComponent<IDamageable>();
+            
             if (playerScript != null)
             {
+                // Memberikan damage ke Player
                 playerScript.KenaDamage(damageSaatTabrakan);
+                Debug.Log("Musuh berhasil menabrak dan melukai Player!");
+            }
+            else 
+            {
+                Debug.LogWarning("Player ditabrak tapi script IDamageable tidak ditemukan di Player!");
             }
         }
     }

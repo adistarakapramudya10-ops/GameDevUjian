@@ -1,6 +1,4 @@
-using UnityEngine;
-
 public interface GrabableItem
 {
-    void GrabItem();
+    void AddItem(ItemDetails itemDetails);
 }

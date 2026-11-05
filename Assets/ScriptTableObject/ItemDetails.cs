@@ -3,8 +3,13 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "ItemDetails", menuName = "Scriptable Objects/ItemDetails")]
 public class ItemDetails : ScriptableObject
 {
-    public string itemName;
-    public int quantity;
-    public Sprite itemIcon;
-    public string itemDescription;
+    [SerializeField] private string itemName;
+    [SerializeField] private int quantity = 1;
+    [SerializeField] private Sprite itemIcon;
+    [SerializeField, TextArea] private string description;
+
+    public string ItemName => itemName;
+    public int Quantity => quantity;
+    public Sprite ItemIcon => itemIcon;
+    public string Description => description;
 }

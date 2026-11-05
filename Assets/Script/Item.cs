@@ -2,22 +2,32 @@ using UnityEngine;
 
 public class Item : MonoBehaviour
 {
-    ItemDetails itemDetails;
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    private void OncollisionEnter(Collision collision)
+    [SerializeField] private ItemDetails ItemDetails;
+    private GrabableItem itemCollector;
+    
+    void Awake()
     {
-        if (collision.gameObject.CompareTag("Player"))
+        foreach (MonoBehaviour component in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
         {
-            Debug.Log("Player has collided with the item");
-            GrabItem();
+            if (component is GrabableItem collector)
+            {
+                itemCollector = collector;
+                break;
+            }
+        }
+
+        if (itemCollector == null)
+        {
+            Debug.LogError("No active component implementing GrabableItem was found in the scene.", this);
         }
     }
 
-    public void GrabItem()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log("Item has been grabbed");
-        // Add logic to add the item to the player's inventory
-        Destroy(gameObject); // Remove the item from the scene after grabbing
+        if (other.CompareTag("Player") && ItemDetails != null && itemCollector != null)
+        {
+            itemCollector.AddItem(ItemDetails);
+            Destroy(gameObject);
+        }
     }
 }
