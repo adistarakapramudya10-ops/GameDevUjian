@@ -1,38 +1,49 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine.UI;
 
-// Sits on the InventoryDetails object (right side of the inventory)
-// and draws the item that the player selected
 public class ItemDetailsPanel : MonoBehaviour
 {
-    [SerializeField] private Image itemImage;
+    [Header("UI References")]
+    [SerializeField] private GameObject panelParent;
     [SerializeField] private TMP_Text itemNameText;
     [SerializeField] private TMP_Text itemQuantityText;
     [SerializeField] private TMP_Text itemDescriptionText;
+    [SerializeField] private Image itemIconImage;
 
-    // Called by InventoryManager whenever the player selects a slot
+    void Start()
+    {
+        if (panelParent != null)
+            panelParent.SetActive(false); // Sembunyikan panel di awal game
+    }
+
     public void Show(ItemDetails item, int quantity)
     {
-        if (item == null)
-        {
-            Clear();
-            return;
-        }
+    if (item == null) return;
 
-        itemImage.sprite = item.ItemIcon;
-        itemImage.enabled = true;
-        itemNameText.text = item.ItemName;
-        itemQuantityText.text = "Quantity: " + quantity;
-        itemDescriptionText.text = item.Description;
+    if (panelParent != null) panelParent.SetActive(true);
+
+    if (itemNameText != null) itemNameText.text = item.ItemName;
+    if (itemQuantityText != null) itemQuantityText.text = "Qty: " + quantity;
+    if (itemDescriptionText != null) itemDescriptionText.text = item.Description;
+
+    if (itemIconImage != null)
+        {
+        itemIconImage.sprite = item.ItemIcon;
+        itemIconImage.enabled = (item.ItemIcon != null);
+        
+        // Mengambil warna dari ItemDetails
+        itemIconImage.color = item.ItemColor;
+        
+        // Memastikan tidak transparan
+        Color col = itemIconImage.color;
+        col.a = 1f;
+        itemIconImage.color = col;
+        }
     }
 
     public void Clear()
     {
-        itemImage.sprite = null;
-        itemImage.enabled = false;
-        itemNameText.text = "";
-        itemQuantityText.text = "";
-        itemDescriptionText.text = "";
+        if (panelParent != null) panelParent.SetActive(false);
     }
 }

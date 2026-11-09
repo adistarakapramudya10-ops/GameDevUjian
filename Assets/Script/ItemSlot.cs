@@ -9,9 +9,10 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
     public string itemName;
     public int itemQuantity;
     public Sprite itemIcon;
+    public Color itemColor = Color.white;
     public bool isFull;
 
-    // Item Slot
+    // Item Slot UI Components
     [SerializeField] private TMP_Text quantityText;
     [SerializeField] private Image itemImage;
     [SerializeField] private int maxStackSize = 99;
@@ -20,7 +21,7 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
     [SerializeField] public GameObject selectedPanel;
     public bool isItemSelected;
 
-    // The full item data stored in this slot (the details panel needs it)
+    // The full item data stored in this slot
     public ItemDetails ItemDetails => itemDetails;
     private ItemDetails itemDetails;
 
@@ -29,6 +30,11 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
     public void Start()
     {
         inventoryManager = FindAnyObjectByType<InventoryManager>();
+        
+        if (selectedPanel != null)
+            selectedPanel.SetActive(false);
+            
+        UpdateSlotUI();
     }
 
     public void AddItem(ItemDetails item)
@@ -36,13 +42,12 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
         itemDetails = item;
         itemName = item.ItemName;
         itemIcon = item.ItemIcon;
+        itemColor = item.ItemColor; // Mengambil warna dari item details
         AddQuantity(item.Quantity);
     }
 
-    // The slot is empty as long as it holds no items
-    public bool IsEmpty => itemQuantity <= 0;
+    public bool IsEmpty => itemQuantity <= 0 || itemDetails == null;
 
-    // Check conditions for stacking items in the same slot
     public bool CanStackWith(string otherItemName)
     {
         return !isFull && itemName == otherItemName;
@@ -52,10 +57,44 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
     {
         itemQuantity += amount;
         isFull = itemQuantity >= maxStackSize;
-        
-        quantityText.text = itemQuantity.ToString();
-        quantityText.enabled = true;
-        itemImage.sprite = itemIcon;
+        UpdateSlotUI();
+    }
+
+    private void UpdateSlotUI()
+    {
+        if (IsEmpty)
+        {
+            if (itemImage != null)
+            {
+                itemImage.sprite = null;
+                itemImage.enabled = false;
+            }
+            if (quantityText != null)
+            {
+                quantityText.text = "";
+                quantityText.enabled = false;
+            }
+        }
+        else
+        {
+            if (itemImage != null)
+            {
+                itemImage.sprite = itemIcon;
+                itemImage.enabled = true;
+                
+                // Menerapkan warna unik milik item tersebut dan memastikan tidak transparan
+                itemImage.color = itemColor;
+                Color col = itemImage.color;
+                col.a = 1f;
+                itemImage.color = col;
+            }
+
+            if (quantityText != null)
+            {
+                quantityText.text = itemQuantity > 1 ? itemQuantity.ToString() : "";
+                quantityText.enabled = true;
+            }
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -64,24 +103,20 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
         {
             LeftClick();
         }
-        
-        if (eventData.button == PointerEventData.InputButton.Right)
+        else if (eventData.button == PointerEventData.InputButton.Right)
         {
             RightClick();
         }
     }
+
     private void LeftClick()
     {
-        if (IsEmpty || inventoryManager == null)
-        {
-            return; // empty slot: nothing to show
-        }
-
+        if (IsEmpty || inventoryManager == null) return;
         inventoryManager.SelectSlot(this);
     }
+
     private void RightClick()
     {
-        
-        Debug.Log("Right Clicked on ");
+        Debug.Log("Right Clicked on " + itemName);
     }
 }

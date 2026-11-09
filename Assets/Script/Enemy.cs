@@ -151,23 +151,24 @@ public class Enemy : MonoBehaviour, IDamageable
     }
 
     // Dipanggil otomatis oleh Unity saat dua benda padat (Collider 2D) saling bertabrakan
+    // Dipanggil otomatis oleh Unity saat dua benda padat (Collider 2D) saling bertabrakan
     void OnCollisionEnter2D(Collision2D collision)
     {
         // Mengecek apakah objek yang ditabrak memiliki Tag "Player"
         if (collision.gameObject.CompareTag("Player"))
         {
-            // Mencari komponen IDamageable di objek Player tersebut
-            IDamageable playerScript = collision.gameObject.GetComponent<IDamageable>();
+            // Langsung akses komponen PlayerHealth yang ada di Player
+            PlayerHealth playerHealth = collision.gameObject.GetComponent<PlayerHealth>();
             
-            if (playerScript != null)
+            if (playerHealth != null)
             {
                 // Memberikan damage ke Player
-                playerScript.KenaDamage(damageSaatTabrakan);
-                Debug.Log("Musuh berhasil menabrak dan melukai Player!");
+                playerHealth.KenaDamage(damageSaatTabrakan);
+                Debug.Log("Musuh berhasil menabrak dan melukai Player sebesar: " + damageSaatTabrakan);
             }
             else 
             {
-                Debug.LogWarning("Player ditabrak tapi script IDamageable tidak ditemukan di Player!");
+                Debug.LogWarning("Player ditabrak tapi script PlayerHealth tidak ditemukan di Player!");
             }
         }
     }

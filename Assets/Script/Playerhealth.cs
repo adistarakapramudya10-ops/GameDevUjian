@@ -3,38 +3,38 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro; // Gunakan ini jika teks Game Over menggunakan TextMeshPro
 
 namespace PASGame
 {
-    // Taruh di Player.
-    // HP habis -> player hilang sebentar -> respawn di titik awal dengan efek kedip-kedip (kebal sementara).
-    public class PlayerHealth : MonoBehaviour, IDamageable
+    public class PlayerHealth : MonoBehaviour
     {
         [Header("HP")]
-        public int maxHP = 5;                    // 5 HP = 6 gambar healthbar (5,4,3,2,1,0)
+        public int maxHP = 5;                   
 
         [Header("UI")]
-        public Image healthBarFill;              // 2. Tempat untuk memasukkan potongan UI Bar Penuh
+        public Image healthBarFill;             
+        public GameObject gameOverPanel;        // Masukkan Panel/Teks Game Over dari Canvas di sini
 
         [Header("Respawn & kedip")]
-        public Transform respawnPoint;           // kosong = kembali ke posisi awal player
-        public float respawnDelay = 1f;
-        public float spawnInvincibleTime = 2f;   // kedip + kebal setelah respawn & di awal game
-        public float hitInvincibleTime = 1f;     // kedip + kebal setelah kena hit
+        public Transform respawnPoint;          
+        public float respawnDelay = 2f;
+        public float spawnInvincibleTime = 2f;   
+        public float hitInvincibleTime = 1f;     
         public float blinkInterval = 0.1f;
 
         [Header("Opsional (kosong = otomatis)")]
-        public Behaviour[] disableWhileDead;     // script yang dimatikan saat mati
-        public SpriteRenderer[] blinkRenderers;  // sprite yang berkedip
+        public Behaviour[] disableWhileDead;    
+        public SpriteRenderer[] blinkRenderers; 
 
         public int CurrentHP { get; private set; }
         public bool IsDead { get; private set; }
         public bool IsInvincible { get; private set; }
 
-        // (hpSekarang, hpMaks) -> didengarkan HealthBarUI
         public event Action<int, int> OnHealthChanged;
 
         Vector3 startPosition;
+        Quaternion startRotation; // Menyimpan rotasi awal player
         Rigidbody2D rb;
 
         void Awake()
@@ -42,14 +42,20 @@ namespace PASGame
             if (maxHP < 1) maxHP = 1;
             CurrentHP = maxHP;
             startPosition = transform.position;
+            startRotation = transform.rotation;
             rb = GetComponent<Rigidbody2D>();
+
+            // Pastikan panel Game Over disembunyikan saat game dimulai
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(false);
+            }
 
             if (blinkRenderers == null || blinkRenderers.Length == 0)
             {
                 blinkRenderers = GetComponentsInChildren<SpriteRenderer>();
             }
 
-            // Otomatis: matikan PlayerMovement* dan PlayerShooter saat mati
             if (disableWhileDead == null || disableWhileDead.Length == 0)
             {
                 List<Behaviour> found = new List<Behaviour>();
@@ -71,8 +77,8 @@ namespace PASGame
         void Start()
         {
             if (OnHealthChanged != null) OnHealthChanged(CurrentHP, maxHP);
-            UpdateHealthBarUI(); // Perbarui bar saat game dimulai
-            StartCoroutine(InvincibleBlink(spawnInvincibleTime));   // efek spawn di awal game
+            UpdateHealthBarUI(); 
+            StartCoroutine(InvincibleBlink(spawnInvincibleTime));   
         }
 
         public void KenaDamage(int amount)
@@ -82,12 +88,17 @@ namespace PASGame
             CurrentHP = Mathf.Max(0, CurrentHP - amount);
             if (OnHealthChanged != null) OnHealthChanged(CurrentHP, maxHP);
             
-            UpdateHealthBarUI(); // Perbarui bar saat terkena damage
+            UpdateHealthBarUI(); 
 
             if (CurrentHP <= 0)
                 StartCoroutine(DieAndRespawn());
             else
                 StartCoroutine(InvincibleBlink(hitInvincibleTime));
+        }
+
+        public void TakeDamage(float amount)
+        {
+            KenaDamage(Mathf.RoundToInt(amount));
         }
 
         public void Heal(int amount)
@@ -96,23 +107,15 @@ namespace PASGame
             CurrentHP = Mathf.Min(maxHP, CurrentHP + amount);
             if (OnHealthChanged != null) OnHealthChanged(CurrentHP, maxHP);
             
-            UpdateHealthBarUI(); // Perbarui bar saat darah bertambah
+            UpdateHealthBarUI(); 
         }
 
-        // Fungsi memotong panjang bar UI sesuai sisa HP (Dengan Pelacak)
         void UpdateHealthBarUI()
         {
             if (healthBarFill != null)
             {
-                // Memastikan pembagian menggunakan angka desimal (float)
                 float targetFill = (float)CurrentHP / (float)maxHP;
                 healthBarFill.fillAmount = targetFill;
-                
-                Debug.Log("UI UPDATE: HP sekarang " + CurrentHP + "/" + maxHP + " | Fill Amount diatur ke: " + targetFill);
-            }
-            else
-            {
-                Debug.LogWarning("UI UPDATE GAGAL: Kolom Health Bar Fill di Inspector masih kosong!");
             }
         }
 
@@ -120,23 +123,50 @@ namespace PASGame
         {
             IsDead = true;
             SetControlEnabled(false);
+            
             if (rb != null)
             {
                 rb.linearVelocity = Vector2.zero;
                 rb.angularVelocity = 0f;
             }
-            SetVisible(false);
 
-            yield return new WaitForSeconds(respawnDelay);
+            // --- ANIMASI SEDERHANA: Tengkurap (Memutar sprite player 90 atau 180 derajat) ---
+            transform.rotation = Quaternion.Euler(0, 0, -90f); 
 
+            // Tampilkan tulisan / Panel Game Over
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(true);
+            }
+
+            // Efek kedip-kedip saat mati sebelum respawn
+            float elapsed = 0f;
+            while (elapsed < respawnDelay)
+            {
+                SetVisible(false);
+                yield return new WaitForSeconds(blinkInterval);
+                SetVisible(true);
+                yield return new WaitForSeconds(blinkInterval);
+                elapsed += blinkInterval * 2f;
+            }
+
+            // --- RESET SETELAH RESPAWN ---
             transform.position = respawnPoint != null ? respawnPoint.position : startPosition;
+            transform.rotation = startRotation; // Kembalikan posisi rotasi normal
             CurrentHP = maxHP;
-            if (OnHealthChanged != null) OnHealthChanged(CurrentHP, maxHP);
             
-            UpdateHealthBarUI(); // Kembalikan bar menjadi penuh saat respawn
+            if (OnHealthChanged != null) OnHealthChanged(CurrentHP, maxHP);
+            UpdateHealthBarUI(); 
+
+            // Sembunyikan kembali panel Game Over
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(false);
+            }
 
             IsDead = false;
             SetControlEnabled(true);
+            
             yield return StartCoroutine(InvincibleBlink(spawnInvincibleTime));
         }
 

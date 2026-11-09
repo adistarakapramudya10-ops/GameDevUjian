@@ -1,99 +1,106 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour, IDamageable
+namespace PASGame
 {
-    public float kecepatan = 5f;
-    public int skor = 0;
-
-    public GameManager gameManager;
-
-    private Rigidbody2D rb;
-    private Vector2 moveInput;
-
-    private void OnEnable()
+    public class PlayerMovement : MonoBehaviour, IDamageable
     {
-        PengirimEvent.OnTekanSpasi += TerimaNotifikasiSpasi;
-    }
+        public float kecepatan = 5f;
+        public int skor = 0;
+        public GameManager gameManager;
 
-    private void OnDisable()
-    {
-        PengirimEvent.OnTekanSpasi -= TerimaNotifikasiSpasi;
-    }
+        private Rigidbody2D rb;
+        private Animator animator; 
+        private SpriteRenderer spriteRenderer; 
+        private Vector2 moveInput;
 
-    private void TerimaNotifikasiSpasi()
-    {
-        Debug.Log("Penerima Event (Player): Event spasi diterima!");
-    }
-    // ----------------------------------------------
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-    }
-
-    void Update()
-    {
-        moveInput = Vector2.zero;
-
-        if (Keyboard.current != null)
+        private void OnEnable()
         {
-            // Pergerakan WASD
-            if (Keyboard.current.aKey.isPressed) moveInput.x = -1;
-            if (Keyboard.current.dKey.isPressed) moveInput.x = 1;
-            if (Keyboard.current.wKey.isPressed) moveInput.y = 1;
-            if (Keyboard.current.sKey.isPressed) moveInput.y = -1;
+            PengirimEvent.OnTekanSpasi += TerimaNotifikasiSpasi;
+        }
+        private void OnDisable()
+        {
+            PengirimEvent.OnTekanSpasi -= TerimaNotifikasiSpasi;
+        }
+        private void TerimaNotifikasiSpasi()
+        {
+            Debug.Log("Event spasi diterima!");
+        }
 
-            // Tekan Spasi untuk menyerang Enemy di sekitar
-            if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        void Start()
+        {
+            rb = GetComponent<Rigidbody2D>();
+            animator = GetComponent<Animator>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
+
+        void Update()
+        {
+            moveInput = Vector2.zero;
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.aKey.isPressed) moveInput.x = -1f;
+                if (Keyboard.current.dKey.isPressed) moveInput.x = 1f;
+                if (Keyboard.current.wKey.isPressed) moveInput.y = 1f;
+                if (Keyboard.current.sKey.isPressed) moveInput.y = -1f;
+            }
+            moveInput.Normalize();
+
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 SerangMusuh();
             }
-        }
 
-        moveInput.Normalize();
-    }
-
-    void FixedUpdate()
-    {
-        rb.MovePosition(rb.position + moveInput * kecepatan * Time.fixedDeltaTime);
-    }
-
-    // Mekanisme Player memukul Enemy (Radius jangkauan 5f agar pasti kena)
-    private void SerangMusuh()
-    {
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, 5f);
-
-        foreach (Collider2D enemyCollider in hitEnemies)
-        {
-            IDamageable damageable = enemyCollider.GetComponentInParent<IDamageable>();
-
-            if (damageable != null && enemyCollider.gameObject != gameObject)
+            bool isMoving = moveInput.magnitude > 0.1f;
+            if (animator != null)
             {
-                damageable.KenaDamage(50); // Kasih 50 damage ke Enemy
-                Debug.Log("Player memukul enemy!");
+                animator.SetBool("Moving", isMoving);
+                if (isMoving)
+                {
+                    animator.SetFloat("X", moveInput.x);
+                    animator.SetFloat("Y", moveInput.y);
+                    if (spriteRenderer != null)
+                    {
+                        if (moveInput.x < 0) spriteRenderer.flipX = true;
+                        else if (moveInput.x > 0) spriteRenderer.flipX = false;
+                    }
+                }
             }
         }
-    }
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Coin"))
+        void FixedUpdate()
         {
-            Destroy(other.gameObject);
-            skor++;
-            Debug.Log("Skor : " + skor);
+            rb.MovePosition(rb.position + moveInput * kecepatan * Time.fixedDeltaTime);
+        }
 
-            if (gameManager != null)
+        private void SerangMusuh()
+        {
+            if (animator != null) animator.SetTrigger("Attack");
+
+            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, 2f);
+            foreach (Collider2D enemyCollider in hitEnemies)
             {
-                gameManager.AmbilKoin();
+                IDamageable damageable = enemyCollider.GetComponentInParent<IDamageable>();
+                if (damageable != null && enemyCollider.gameObject != gameObject)
+                {
+                    damageable.KenaDamage(50);
+                }
             }
         }
-    }
 
-    // Player bisa kena damage (Syarat Interface IDamageable) tapi TIDAK BISA MATI karena tidak punya HP
-    public void KenaDamage(int jumlah)
-    {
-        Debug.Log("Player kena damage sebesar: " + jumlah);
+        void OnTriggerEnter2D(Collider2D other)
+        {
+            if (other.CompareTag("Coin"))
+            {
+                Destroy(other.gameObject);
+                skor++;
+                if (gameManager != null) gameManager.AmbilKoin();
+            }
+        }
+
+        public void KenaDamage(int jumlah)
+        {
+            // Dikosongkan sengaja, karena urusan damage sekarang 100% dipegang oleh script PlayerHealth
+        }
     }
 }

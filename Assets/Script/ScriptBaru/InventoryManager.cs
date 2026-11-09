@@ -1,4 +1,3 @@
-
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -66,67 +65,71 @@ public class InventoryManager : MonoBehaviour, GrabableItem
         }
     }
 
-    private void CreateSlots()
+   private void CreateSlots()
+{
+    ItemSlot slotPrefab = Resources.Load<ItemSlot>("ItemSlot");
+
+    if (slotPrefab == null)
     {
-        ItemSlot slotPrefab = Resources.Load<ItemSlot>("ItemSlot");
+        Debug.LogError("ItemSlot prefab not found in Resources.");
+        itemSlot = new ItemSlot[0];
+        return;
+    }
 
-        if (slotPrefab == null)
-        {
-            Debug.LogError("ItemSlot prefab not found in Resources.");
-            itemSlot = new ItemSlot[0];
-            return;
-        }
+    Transform parent = InventoryCanvas.transform;
 
-        Transform parent = InventoryCanvas.transform;
+    GridLayoutGroup grid =
+        InventoryCanvas.GetComponentInChildren<GridLayoutGroup>(true);
 
-        GridLayoutGroup grid =
-            InventoryCanvas.GetComponentInChildren<GridLayoutGroup>(true);
+    if (grid != null)
+        parent = grid.transform;
 
-        if (grid != null)
-            parent = grid.transform;
-
+    // Jika slot sudah dibuat secara manual di dalam Grid, gunakan yang sudah ada:
+    int existingSlots = parent.childCount;
+    if (existingSlots >= slotCount)
+    {
         itemSlot = new ItemSlot[slotCount];
-
-        for (int i = 0; i < itemSlot.Length; i++)
+        for (int i = 0; i < slotCount; i++)
+        {
+            itemSlot[i] = parent.GetChild(i).GetComponent<ItemSlot>();
+        }
+    }
+    else
+    {
+        // Jika belum ada, buat secara otomatis dan pastikan berurutan
+        itemSlot = new ItemSlot[slotCount];
+        for (int i = 0; i < slotCount; i++)
         {
             itemSlot[i] = Instantiate(slotPrefab, parent);
         }
     }
+}
 
     public void AddItem(ItemDetails item)
+{
+    if (item == null)
+        return;
+
+    Debug.Log("Item added: " + item.ItemName);
+
+    if (itemSlot == null || itemSlot.Length == 0)
+        return;
+
+    // 1. Cari slot KOSONG PERTAMA secara berurutan dari indeks 0 (Pojok Kiri Atas)
+    for (int i = 0; i < itemSlot.Length; i++)
     {
-        if (item == null)
-            return;
-
-        Debug.Log("Item added: " + item.ItemName);
-
-        if (itemSlot == null || itemSlot.Length == 0)
-            return;
-
-        for (int i = 0; i < itemSlot.Length; i++)
+        // Pastikan slot tidak null dan benar-benar kosong
+        if (itemSlot[i] != null && itemSlot[i].IsEmpty)
         {
-            if (itemSlot[i].CanStackWith(item.ItemName))
-            {
-                itemSlot[i].AddQuantity(item.Quantity);
+            itemSlot[i].AddItem(item);
 
-                OnInventoryChanged?.Invoke();
-                return;
-            }
+            OnInventoryChanged?.Invoke();
+            return;
         }
-
-        for (int i = 0; i < itemSlot.Length; i++)
-        {
-            if (itemSlot[i].IsEmpty)
-            {
-                itemSlot[i].AddItem(item);
-
-                OnInventoryChanged?.Invoke();
-                return;
-            }
-        }
-
-        Debug.LogWarning("Inventory is full.");
     }
+
+    Debug.LogWarning("Inventory is full.");
+}
 
     public int GetAmount(ItemDetails item)
     {
@@ -151,7 +154,9 @@ public class InventoryManager : MonoBehaviour, GrabableItem
     {
         DesselectAllSlot();
 
-        slot.selectedPanel.SetActive(true);
+        if (slot.selectedPanel != null)
+            slot.selectedPanel.SetActive(true);
+            
         slot.isItemSelected = true;
 
         if (detailsPanel != null)
@@ -189,7 +194,8 @@ public class InventoryManager : MonoBehaviour, GrabableItem
                 continue;
 
             slot.isItemSelected = false;
-            slot.selectedPanel.SetActive(false);
+            if (slot.selectedPanel != null)
+                slot.selectedPanel.SetActive(false);
         }
     }
 }

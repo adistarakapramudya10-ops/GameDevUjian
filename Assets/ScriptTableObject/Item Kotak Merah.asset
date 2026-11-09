@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0c34882cf2c09b4a93ff8250ea5d103, type: 3}
   m_Name: Item Kotak Merah
   m_EditorClassIdentifier: 
-  itemName: Kotak Merah
-  quantity: 100
+  itemName: bola biru
+  quantity: 1
   itemIcon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  itemColor: {r: 0, g: 0.54563797, b: 0.9528302, a: 1}
+  description: Sebuah bola biru misterius yang ditemukan di arena.
